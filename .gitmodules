@@ -1,0 +1,6 @@
+[submodule "argparse"]
+	path = argparse
+	url = https://github.com/p-ranav/argparse.git
+[submodule "json"]
+	path = json
+	url = https://github.com/nlohmann/json.git
