@@ -1,0 +1,21 @@
+version: "3"
+services:
+  faster-service:
+    build:
+      context: ./
+      args:
+        GID: 5032
+        UID: 5032
+        USER_NAME: kazuma_nis
+    container_name: faster-container
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - type: bind
+        source: ./
+        target: /workspace/
+    shm_size: 10.24gb
+    tty: True
