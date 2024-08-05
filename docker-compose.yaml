@@ -1,13 +1,13 @@
 version: "3"
 services:
-  faster-service:
+  fastrusco-service:
     build:
       context: ./
       args:
         GID: 5032
         UID: 5032
         USER_NAME: kazuma_nis
-    container_name: faster-container
+    container_name: fastrusco-container
     deploy:
       resources:
         reservations:
