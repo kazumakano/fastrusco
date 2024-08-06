@@ -80,6 +80,10 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  const auto tgt_dir = fs::path(parser.get("--tgt_file")).parent_path();
+  if (!fs::exists(tgt_dir)) {
+    fs::create_directories(tgt_dir);
+  }
   cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 5, warped_masks[0].size());
 
   // stitch
