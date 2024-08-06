@@ -5,21 +5,46 @@
 #include <nlohmann/json.hpp>
 #include <glob.h>
 
-/*
-FRM_SIZE : int, int
-  Width and height of target video.
-MASK_REG_EXP : (cam_name: string) -> string
-  Regular expression of mask image file names.
-VID_REG_EXP : (cam_name: string) -> string
-  Regular expression of source video file names.
-*/
+/** @def
+ * @brief Regular expression of mask image file names.
+ * @param n Camera name.
+ */
+#define MASK_REG_EXP(n) n + ".png"
 
-#define FRM_SIZE 8000, 4000
-#define MASK_REG_EXP(cam_name) cam_name + ".png"
-#define VID_REG_EXP(cam_name)  cam_name + ".mp4"
+/** @def
+ * @brief Regular expression of source video file names.
+ * @param n Camera name.
+ */
+#define VID_REG_EXP(n)  n + ".mp4"
 
 namespace cuda = cv::cuda;
 namespace fs = std::filesystem;
+
+/** @fn
+ * @brief Add margins or remove paddings to fit stitched images.
+ * @param pjs Projection matrices. This value will be updated.
+ * @return Stitched image size.
+ */
+cv::Size2i crop(std::vector<cv::Mat> pjs) {
+  std::vector stitched_ltrb = {cv::Point2d(INFINITY, INFINITY), cv::Point2d(-INFINITY, -INFINITY)};
+  for (const auto p : pjs) {
+    std::vector<cv::Point2d> tf_ltrb;
+    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2d(0, 0), cv::Point2d(1920, 1080)}, tf_ltrb, p);
+    stitched_ltrb[0].x = MIN(stitched_ltrb[0].x, tf_ltrb[0].x);
+    stitched_ltrb[0].y = MIN(stitched_ltrb[0].y, tf_ltrb[0].y);
+    stitched_ltrb[1].x = MAX(stitched_ltrb[1].x, tf_ltrb[1].x);
+    stitched_ltrb[1].y = MAX(stitched_ltrb[1].y, tf_ltrb[1].y);
+  }
+  for (auto p : pjs) {
+    p = (cv::Mat_<double>(3, 3) <<
+      1, 0, -stitched_ltrb[0].x,
+      0, 1, -stitched_ltrb[0].y,
+      0, 0, 1
+    ) * p;
+  }
+
+  return cv::Size2i(stitched_ltrb[1].x - stitched_ltrb[0].x, stitched_ltrb[1].y - stitched_ltrb[0].y);
+}
 
 cuda::GpuMat stitch(const std::vector<cuda::GpuMat> imgs, const std::vector<cv::Mat> pjs, const std::vector<cuda::GpuMat> warped_masks) {
   cuda::GpuMat stitched_img(warped_masks[0].size(), CV_8UC3, cv::Scalar(0));
@@ -51,26 +76,24 @@ int main(int argc, char **argv) {
   const auto pj_dict = nlohmann::json::parse(pj_file);
   pj_file.close();
 
-  // setup
+  // load constants
   std::vector<cv::VideoCapture> caps;
+  std::vector<cuda::GpuMat> masks;
   std::vector<cv::Mat> pjs;
-  std::vector<cuda::GpuMat> warped_masks;
   for (const auto [n, p] : pj_dict.items()) {
     glob_t mask_files, vid_files;
     glob(fs::path(parser.get("--mask_dir")).append(MASK_REG_EXP(n)).c_str(), 0, NULL, &mask_files);
     glob(fs::path(parser.get("--src_dir")).append(VID_REG_EXP(n)).c_str(), 0, NULL, &vid_files);
     if (mask_files.gl_pathc == vid_files.gl_pathc == 1) {
       caps.emplace_back(vid_files.gl_pathv[0]);
+      cuda::GpuMat mask;
+      mask.upload(cv::imread(mask_files.gl_pathv[0], cv::IMREAD_GRAYSCALE));
+      masks.push_back(mask);
       pjs.push_back((cv::Mat_<double>(3, 3) <<
         p["projective_matrix"][0][0], p["projective_matrix"][0][1], p["projective_matrix"][0][2],
         p["projective_matrix"][1][0], p["projective_matrix"][1][1], p["projective_matrix"][1][2],
         p["projective_matrix"][2][0], p["projective_matrix"][2][1], p["projective_matrix"][2][2]
       ));
-      const auto mask = cv::imread(mask_files.gl_pathv[0], cv::IMREAD_GRAYSCALE);
-      cuda::GpuMat mask_on_gpu, warped_mask_on_gpu;
-      mask_on_gpu.upload(mask);
-      cuda::warpPerspective(mask_on_gpu, warped_mask_on_gpu, pjs.back(), cv::Size2i(FRM_SIZE));
-      warped_masks.push_back(warped_mask_on_gpu);
     }
     globfree(&mask_files);
     globfree(&vid_files);
@@ -80,11 +103,18 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  const auto tgt_dir = fs::path(parser.get("--tgt_file")).parent_path();
-  if (!fs::exists(tgt_dir)) {
-    fs::create_directories(tgt_dir);
+  // prepare constants
+  const auto frm_size = crop(pjs);
+
+  fs::create_directories(fs::absolute(parser.get("--tgt_file")).parent_path());
+  cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 5, frm_size);
+
+  std::vector<cuda::GpuMat> warped_masks;
+  for (int i = 0; i < caps.size(); i++) {
+      cuda::GpuMat warped_mask;
+      cuda::warpPerspective(masks[i], warped_mask, pjs[i], frm_size);
+      warped_masks.push_back(warped_mask);
   }
-  cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 5, warped_masks[0].size());
 
   // stitch
   while (true) {
