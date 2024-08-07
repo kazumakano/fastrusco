@@ -6,13 +6,13 @@
 #include <nlohmann/json.hpp>
 #include <glob.h>
 
-/** @def
+/**
  * @brief Regular expression of mask image file names.
  * @param n Camera name.
  */
 #define MASK_REG_EXP(n) n + ".png"
 
-/** @def
+/**
  * @brief Regular expression of source video file names.
  * @param n Camera name.
  */
@@ -21,7 +21,7 @@
 namespace cuda = cv::cuda;
 namespace fs = std::filesystem;
 
-/** @fn
+/**
  * @brief Add margins or remove paddings to fit stitched images.
  * @param pjs Projection matrices. This value will be updated.
  * @return Stitched image size.
