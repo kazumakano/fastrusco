@@ -16,7 +16,7 @@
  * @brief Regular expression of source video file names.
  * @param n Camera name.
  */
-#define VID_REG_EXP(n)  n + ".mp4"
+#define VID_REG_EXP(n) n + ".mp4"
 
 namespace cuda = cv::cuda;
 namespace fs = std::filesystem;
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   const auto frm_size = crop(pjs);
 
   fs::create_directories(fs::absolute(parser.get("--tgt_file")).parent_path());
-  cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 5, frm_size);
+  cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), caps[0].get(cv::CAP_PROP_FPS), frm_size);
 
   std::vector<cuda::GpuMat> warped_masks;
   for (int i = 0; i < caps.size(); i++) {
