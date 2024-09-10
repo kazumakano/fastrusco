@@ -29,12 +29,12 @@ namespace fs = std::filesystem;
 cv::Size2i crop(std::vector<cv::Mat> pjs) {
   std::vector stitched_ltrb = {cv::Point2d(INFINITY, INFINITY), cv::Point2d(-INFINITY, -INFINITY)};
   for (const auto p : pjs) {
-    std::vector<cv::Point2d> tf_ltrb;
-    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2d(0, 0), cv::Point2d(1920, 1080)}, tf_ltrb, p);
-    stitched_ltrb[0].x = MIN(stitched_ltrb[0].x, tf_ltrb[0].x);
-    stitched_ltrb[0].y = MIN(stitched_ltrb[0].y, tf_ltrb[0].y);
-    stitched_ltrb[1].x = MAX(stitched_ltrb[1].x, tf_ltrb[1].x);
-    stitched_ltrb[1].y = MAX(stitched_ltrb[1].y, tf_ltrb[1].y);
+    std::vector<cv::Point2d> tf_corners;
+    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2d(0, 0), cv::Point2d(1920, 0), cv::Point2d(0, 1080), cv::Point2d(1920, 1080)}, tf_corners, p);
+    stitched_ltrb[0].x = std::min({stitched_ltrb[0].x, tf_corners[0].x, tf_corners[2].x});
+    stitched_ltrb[0].y = std::min({stitched_ltrb[0].y, tf_corners[0].y, tf_corners[1].y});
+    stitched_ltrb[1].x = std::max({stitched_ltrb[1].x, tf_corners[1].x, tf_corners[3].x});
+    stitched_ltrb[1].y = std::max({stitched_ltrb[1].y, tf_corners[2].y, tf_corners[3].y});
   }
   for (auto p : pjs) {
     p = (cv::Mat_<double>(3, 3) <<
