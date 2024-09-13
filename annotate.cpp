@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     }
 
     rec << frm;
-  
+
     if ((int) cap.get(cv::CAP_PROP_POS_FRAMES) % 100 == 0) {
       std::cout << (int) cap.get(cv::CAP_PROP_POS_FRAMES) << " frames have been completed" << std::endl;
     }
