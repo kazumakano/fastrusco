@@ -21,11 +21,11 @@ cv::Size2d compute_offset(std::vector<cv::Mat> pjs) {
   return offset;
 }
 
-void draw_bbox(cv::Mat img, cv::Rect2d bbox, std::string label) {
-  cv::rectangle(img, bbox, cv::Scalar(0, 0, 255), 6);
+void draw_bbox(cv::Mat img, cv::Rect2d bbox, cv::Scalar color, std::string label) {
+  cv::rectangle(img, bbox, color, 6);
   const auto txt_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1.5, 4, 0);
-  cv::rectangle(img, cv::Rect2d(bbox.x, bbox.y - txt_size.height - 4, txt_size.width, txt_size.height + 4), cv::Scalar(0, 0, 255), -1);
-  cv::putText(img, label, cv::Point2d(bbox.x, bbox.y - 4), cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(255, 255, 255), 4);
+  cv::rectangle(img, cv::Rect2d(bbox.x, bbox.y - txt_size.height - 4, txt_size.width, txt_size.height + 4), color, -1);
+  cv::putText(img, label, cv::Point2d(bbox.x, bbox.y - 4), cv::FONT_HERSHEY_SIMPLEX, 1.5, color[0] + color[1] + color[2] > 382.5 ? cv::Scalar(0, 0, 0) : cv::Scalar(255, 255, 255), 4);
 }
 
 int main(int argc, char **argv) {
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
   const auto offset = compute_offset(pjs);
 
-  //  read result file
+  // load result
   std::ifstream result_file(parser.get("--result_file"));
   if (!result_file.is_open()) {
     std::cout << "failed to open " << parser.get("--result_file") << std::endl;
@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
   // draw bboxes
   cv::VideoCapture cap(parser.get("--src_file"));
   cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+  std::map<int, cv::Scalar> colors;
   auto result_idx = 0;
   while (true) {
     cv::Mat frm;
@@ -77,7 +78,10 @@ int main(int argc, char **argv) {
     while (result_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
     if (result_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
       for (const auto t : result_dict[result_idx]["tracks"]) {
-        draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), std::to_string((int) t["track_id"]));
+        if (colors.find(t["track_id"]) == colors.end()) {
+          colors[t["track_id"]] = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
+        }
+        draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), colors[t["track_id"]], std::to_string((int) t["track_id"]));
       }
     }
 
