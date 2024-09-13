@@ -23,7 +23,7 @@ cv::Size2d compute_offset(std::vector<cv::Mat> pjs) {
 
 void draw_bbox(cv::Mat img, cv::Rect2d bbox, cv::Scalar color, std::string label) {
   cv::rectangle(img, bbox, color, 6);
-  const auto txt_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1.5, 4, 0);
+  const auto txt_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1.5, 4, NULL);
   cv::rectangle(img, cv::Rect2d(bbox.x, bbox.y - txt_size.height - 4, txt_size.width, txt_size.height + 4), color, -1);
   cv::putText(img, label, cv::Point2d(bbox.x, bbox.y - 4), cv::FONT_HERSHEY_SIMPLEX, 1.5, color[0] + color[1] + color[2] > 382.5 ? cv::Scalar(0, 0, 0) : cv::Scalar(255, 255, 255), 4);
 }
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     if (result_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
       for (const auto t : result_dict[result_idx]["tracks"]) {
         if (colors.find(t["track_id"]) == colors.end()) {
-          colors[t["track_id"]] = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
+          colors[t["track_id"]] = cv::Scalar(random() % 255, random() % 255, random() % 255);
         }
         draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), colors[t["track_id"]], std::to_string((int) t["track_id"]));
       }
