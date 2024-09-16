@@ -75,7 +75,9 @@ int main(int argc, char **argv) {
     cap >> frm;
     if (frm.empty()) break;
 
-    while (result_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
+    while (result_idx < result_dict.size() && result_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
+    if (result_idx == result_dict.size()) break;
+
     if (result_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
       for (const auto t : result_dict[result_idx]["tracks"]) {
         if (colors.find(t["track_id"]) == colors.end()) {
