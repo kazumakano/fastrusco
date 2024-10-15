@@ -41,10 +41,8 @@ def stitch(mask_dir: str, pj_file: str, src_dir: str, tgt_file: str, ts_cache_fi
     # prepare constants
     cam_names = pj_dict.keys() & ts_cache[0].keys()
     pjs, frm_size = _crop({n: np.array(pj_dict[n]["projective_matrix"], dtype=np.float64) for n in cam_names})
-
     makedirs(path.dirname(tgt_file), exist_ok=True)
     rec = cv2.VideoWriter(tgt_file, cv2.VideoWriter_fourcc(*"mp4v"), 5, frm_size)
-
     warped_masks = {n: cv2.warpPerspective(cv2.imread(path.join(mask_dir, MASK_REG_EXP(n)), flags=cv2.IMREAD_GRAYSCALE), pjs[n], frm_size) for n in cam_names}
 
     # stitch
