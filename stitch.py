@@ -8,11 +8,36 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
+"""
+BEGIN : str
+    Begin time to stitch video.
+END : str
+    End time to stitch video.
+MASK_REG_EXP : (n: str) -> str
+    Regular expression of mask image file name.
+"""
+
 BEGIN = "00:00:00"
 END = "23:59:59"
 MASK_REG_EXP = lambda n: n + ".png"
 
 def _crop(pjs: dict[str, np.ndarray]) -> tuple[dict[str, np.ndarray], tuple[int, int]]:
+    """
+    Add margins or remove paddings to fit stitched images.
+
+    Parameters
+    ----------
+    pjs : dict[str, ndarray[float64]]
+        Dictionary of camera names and original projection matrices.
+
+    Returns
+    -------
+    pjs : dict[str, ndarray[float64]]
+        Dictionary of camera names and cropped projection matrices.
+    size : tuple[int, int]
+        Stitched image size.
+    """
+
     stitched_ltrb = [np.inf, np.inf, -np.inf, -np.inf]
     for p in pjs.values():
         tf_corners = cv2.perspectiveTransform(np.array(((0, 0), (1920, 0), (0, 1080), (1920, 1080)), dtype=np.float32)[:, np.newaxis], p).squeeze(axis=1)
