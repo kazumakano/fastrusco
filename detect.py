@@ -64,12 +64,7 @@ def _detect_by_cam(model_file: str, progress_queue: ray_queue.Queue, result_file
 
 def _show_progress_bars(frm_num: int, progress_queue: ray_queue.Queue) -> None:
     bars: dict[str, tqdm] = {}
-    while True:
-        try:
-            cam_name = progress_queue.get()
-        except EOFError:
-            break
-
+    while (cam_name := progress_queue.get()) != "":
         if cam_name not in bars.keys():
             bars[cam_name] = tqdm(desc=f"detecting for camera {cam_name}", total=frm_num, position=len(bars))
         else:
@@ -87,7 +82,8 @@ def detect(model_file: str, result_dir: str, ts_cache_file: str, vid_dir: str, g
         ts_cache: tuple[dict[str, list[tuple[int, int]]], dict[str, int]] = pickle.load(f)
 
     progress_queue = ray_queue.Queue()
-    threading.Thread(target=_show_progress_bars, args=(5 * (end_in_sec - begin_in_sec), progress_queue)).start()
+    progress_thread = threading.Thread(target=_show_progress_bars, args=(5 * (end_in_sec - begin_in_sec), progress_queue))
+    progress_thread.start()
 
     pid_queue = []
     for d in sorted(iglob(path.join(vid_dir, "camera*"))):
@@ -102,6 +98,10 @@ def detect(model_file: str, result_dir: str, ts_cache_file: str, vid_dir: str, g
                 ts_cache[0][cam_name][5 * (begin_in_sec - ts_cache[1][cam_name]):5 * (end_in_sec - ts_cache[1][cam_name])],
                 path.abspath(d)
             ))
+
+    ray.get(pid_queue)
+    progress_queue.put("")
+    progress_thread.join()
 
 if __name__ == "__main__":
     import argparse
