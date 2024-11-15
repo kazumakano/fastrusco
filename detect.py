@@ -1,4 +1,6 @@
+import base64
 import csv
+import json
 import logging
 import os
 import os.path as path
@@ -30,7 +32,47 @@ END = "23:59:59"
 GPU_PER_TASK = 0.2
 
 @ray.remote(num_gpus=GPU_PER_TASK)
-def _detect_by_cam(model_file: str, progress_queue: ray_queue.Queue, result_file: str, ts_cache: list[tuple[int, int]], vid_dir: str) -> None:
+def _detect_with_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, result_file: str, ts_cache: list[tuple[int, int]], vid_dir: str) -> None:
+    logging.disable()
+
+    result_dir = path.dirname(result_file)
+    if not path.exists(result_dir):
+        makedirs(result_dir)
+
+    cam_name = path.basename(result_dir)
+    model = YOLO(model=model_file)
+
+    cap, vid_idx = None, -1
+    detect_result, detect_id = [], 0
+    for i, (vi, fi) in enumerate(ts_cache):
+        if cap is not None and vid_idx != vi:
+            cap.release()
+        if vid_idx != vi:
+            cap, vid_idx = cv2.VideoCapture(filename=glob(path.join(vid_dir, f"video_??-??-??_{vi:02d}.mp4"))[0]), vi
+        while cap.get(cv2.CAP_PROP_POS_FRAMES) <= fi:
+            frm = cap.read()[1]
+
+        results: YoloResults = model(frm)[0]
+
+        for b in results.boxes:
+            detect_result.append({
+                "Camera_ID": cam_name,
+                "Frame_Number": i,
+                "Tracker_ID": detect_id,
+                "Class_Name": "worker",
+                "Coordinates": b.xywh[0].tolist(),
+                "Confidence": b.conf.item(),
+                "Encoded_Image": base64.b64encode(cv2.imencode(".jpeg", frm[round(b.xyxy[0, 1].item()):round(b.xyxy[0, 3].item()), round(b.xyxy[0, 0].item()):round(b.xyxy[0, 2].item())])[1]).decode()
+            })
+            detect_id += 1
+
+        progress_queue.put(cam_name)
+
+    with open(result_file, mode="w") as f:
+        json.dump(detect_result, f, indent=2)
+
+@ray.remote(num_gpus=GPU_PER_TASK)
+def _detect_without_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, result_file: str, ts_cache: list[tuple[int, int]], vid_dir: str) -> None:
     logging.disable()
 
     result_dir = path.dirname(result_file)
@@ -70,7 +112,7 @@ def _show_progress_bars(frm_num: int, progress_queue: ray_queue.Queue) -> None:
         else:
             bars[cam_name].update()
 
-def detect(model_file: str, result_dir: str, ts_cache_file: str, vid_dir: str, gpu_ids: Optional[list[int]] = None) -> None:
+def detect(encode_img: bool, model_file: str, result_dir: str, ts_cache_file: str, vid_dir: str, gpu_ids: Optional[list[int]] = None) -> None:
     if gpu_ids is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(i) for i in gpu_ids])
     ray.init()
@@ -91,10 +133,10 @@ def detect(model_file: str, result_dir: str, ts_cache_file: str, vid_dir: str, g
         if cam_name in ts_cache[0].keys():
             if len(pid_queue) >= cuda.device_count() // GPU_PER_TASK:
                 pid_queue.remove(ray.wait(pid_queue, num_returns=1)[0][0])
-            pid_queue.append(_detect_by_cam.remote(
+            pid_queue.append((_detect_with_img_by_cam if encode_img else _detect_without_img_by_cam).remote(
                 path.abspath(model_file),
                 progress_queue,
-                path.join(path.abspath(result_dir), cam_name, f"{cam_name}_{date_str}_{begin_in_sec}_{end_in_sec}.csv"),
+                path.join(path.abspath(result_dir), cam_name, f"{cam_name}_{date_str}_{begin_in_sec}_{end_in_sec}.{'json' if encode_img else 'csv'}"),
                 ts_cache[0][cam_name][5 * (begin_in_sec - ts_cache[1][cam_name]):5 * (end_in_sec - ts_cache[1][cam_name])],
                 path.abspath(d)
             ))
@@ -111,7 +153,8 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--result_dir", required=True, help="specify result directory", metavar="PATH_TO_RESULT_DIR")
     parser.add_argument("-tc", "--ts_cache_file", required=True, help="specify timestamp cache file", metavar="PATH_TO_TS_CACHE_FILE")
     parser.add_argument("-v", "--vid_dir", required=True, help="specify video directory", metavar="PATH_TO_VID_DIR")
+    parser.add_argument("-i", "--encode_img", action="store_true", help="encode bounding box images")
     parser.add_argument("-g", "--gpu_ids", nargs="+", type=int, help="specify list of GPU device IDs", metavar="GPU_ID")
     args = parser.parse_args()
 
-    detect(args.model_file, args.result_dir, args.ts_cache_file, args.vid_dir, args.gpu_ids)
+    detect(args.encode_img, args.model_file, args.result_dir, args.ts_cache_file, args.vid_dir, args.gpu_ids)
