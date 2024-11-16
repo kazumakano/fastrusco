@@ -45,6 +45,7 @@ def _crop(pjs: dict[str, np.ndarray]) -> tuple[dict[str, np.ndarray], tuple[int,
         stitched_ltrb[1] = min(stitched_ltrb[1], tf_corners[0, 1], tf_corners[1, 1])
         stitched_ltrb[2] = max(stitched_ltrb[2], tf_corners[1, 0], tf_corners[3, 0])
         stitched_ltrb[3] = max(stitched_ltrb[3], tf_corners[2, 1], tf_corners[3, 1])
+    pjs = pjs.copy()
     for n, p in pjs.items():
         pjs[n] = np.dot(np.array((
             (1, 0, -stitched_ltrb[0]),
