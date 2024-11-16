@@ -43,7 +43,7 @@ def _detect_with_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, re
     model = YOLO(model=model_file)
 
     cap, vid_idx = None, -1
-    detect_result, detect_id = [], 0
+    detect_result = []
     for i, (vi, fi) in enumerate(ts_cache):
         if cap is not None and vid_idx != vi:
             cap.release()
@@ -52,19 +52,18 @@ def _detect_with_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, re
         while cap.get(cv2.CAP_PROP_POS_FRAMES) <= fi:
             frm = cap.read()[1]
 
-        results: YoloResults = model(frm)[0]
+        results: YoloResults = model.track(source=frm, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
 
         for b in results.boxes:
             detect_result.append({
                 "Camera_ID": cam_name,
                 "Frame_Number": i,
-                "Tracker_ID": detect_id,
+                "Tracker_ID": int(b.id.item()),
                 "Class_Name": "worker",
                 "Coordinates": b.xywh[0].tolist(),
                 "Confidence": b.conf.item(),
                 "Encoded_Image": base64.b64encode(cv2.imencode(".jpeg", frm[round(b.xyxy[0, 1].item()):round(b.xyxy[0, 3].item()), round(b.xyxy[0, 0].item()):round(b.xyxy[0, 2].item())])[1]).decode()
             })
-            detect_id += 1
 
         progress_queue.put(cam_name)
 
@@ -87,7 +86,6 @@ def _detect_without_img_by_cam(model_file: str, progress_queue: ray_queue.Queue,
         writer.writerow(("Camera_ID", "Frame_Number", "Tracker_ID", "Class_Name", "Coordinates"))
 
         cap, vid_idx = None, -1
-        detect_id = 0
         for i, (vi, fi) in enumerate(ts_cache):
             if cap is not None and vid_idx != vi:
                 cap.release()
@@ -96,11 +94,10 @@ def _detect_without_img_by_cam(model_file: str, progress_queue: ray_queue.Queue,
             while cap.get(cv2.CAP_PROP_POS_FRAMES) <= fi:
                 frm = cap.read()[1]
 
-            results: YoloResults = model(frm)[0]
+            results: YoloResults = model.track(source=frm, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
 
             for b in results.boxes:
-                writer.writerow((cam_name, i, detect_id, "worker", f"[{b.xywh[0, 0].item()} {b.xywh[0, 1].item()} {b.xywh[0, 2].item()} {b.xywh[0, 3].item()}]"))
-                detect_id += 1
+                writer.writerow((cam_name, i, int(b.id.item()), "worker", f"[{b.xywh[0, 0].item()} {b.xywh[0, 1].item()} {b.xywh[0, 2].item()} {b.xywh[0, 3].item()}]"))
 
             progress_queue.put(cam_name)
 
