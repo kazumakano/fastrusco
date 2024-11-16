@@ -55,15 +55,16 @@ def _detect_with_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, re
         results: YoloResults = model.track(source=frm, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
 
         for b in results.boxes:
-            detect_result.append({
-                "Camera_ID": cam_name,
-                "Frame_Number": i,
-                "Tracker_ID": int(b.id.item()),
-                "Class_Name": "worker",
-                "Coordinates": b.xywh[0].tolist(),
-                "Confidence": b.conf.item(),
-                "Encoded_Image": base64.b64encode(cv2.imencode(".jpeg", frm[round(b.xyxy[0, 1].item()):round(b.xyxy[0, 3].item()), round(b.xyxy[0, 0].item()):round(b.xyxy[0, 2].item())])[1]).decode()
-            })
+            if b.is_track:
+                detect_result.append({
+                    "Camera_ID": cam_name,
+                    "Frame_Number": i,
+                    "Tracker_ID": int(b.id.item()),
+                    "Class_Name": "worker",
+                    "Coordinates": b.xywh[0].tolist(),
+                    "Confidence": b.conf.item(),
+                    "Encoded_Image": base64.b64encode(cv2.imencode(".jpeg", frm[round(b.xyxy[0, 1].item()):round(b.xyxy[0, 3].item()), round(b.xyxy[0, 0].item()):round(b.xyxy[0, 2].item())])[1]).decode()
+                })
 
         progress_queue.put(cam_name)
 
@@ -97,7 +98,8 @@ def _detect_without_img_by_cam(model_file: str, progress_queue: ray_queue.Queue,
             results: YoloResults = model.track(source=frm, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
 
             for b in results.boxes:
-                writer.writerow((cam_name, i, int(b.id.item()), "worker", f"[{b.xywh[0, 0].item()} {b.xywh[0, 1].item()} {b.xywh[0, 2].item()} {b.xywh[0, 3].item()}]"))
+                if b.is_track:
+                    writer.writerow((cam_name, i, int(b.id.item()), "worker", f"[{b.xywh[0, 0].item()} {b.xywh[0, 1].item()} {b.xywh[0, 2].item()} {b.xywh[0, 3].item()}]"))
 
             progress_queue.put(cam_name)
 
