@@ -13,6 +13,7 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]
+              count: all
     volumes:
       - type: bind
         source: ./
