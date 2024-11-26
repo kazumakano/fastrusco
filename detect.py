@@ -43,7 +43,7 @@ def _detect_with_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, re
     model = YOLO(model=model_file)
 
     cap, vid_idx = None, -1
-    detect_result = []
+    detect_id, detect_result = 0, []
     for i, (vi, fi) in enumerate(ts_cache):
         if cap is not None and vid_idx != vi:
             cap.release()
@@ -52,19 +52,19 @@ def _detect_with_img_by_cam(model_file: str, progress_queue: ray_queue.Queue, re
         while cap.get(cv2.CAP_PROP_POS_FRAMES) <= fi:
             frm = cap.read()[1]
 
-        results: YoloResults = model.track(source=frm, persist=True, tracker="bytetrack.yaml", verbose=False)[0]
+        results: YoloResults = model.predict(source=frm, conf=0.1)[0]
 
         for b in results.boxes:
-            if b.is_track:
-                detect_result.append({
-                    "Camera_ID": cam_name,
-                    "Frame_Number": i,
-                    "Tracker_ID": int(b.id.item()),
-                    "Class_Name": "worker",
-                    "Coordinates": b.xywh[0].tolist(),
-                    "Confidence": b.conf.item(),
-                    "Encoded_Image": base64.b64encode(cv2.imencode(".jpeg", frm[round(b.xyxy[0, 1].item()):round(b.xyxy[0, 3].item()), round(b.xyxy[0, 0].item()):round(b.xyxy[0, 2].item())])[1]).decode()
-                })
+            detect_result.append({
+                "Camera_ID": cam_name,
+                "Frame_Number": i,
+                "Tracker_ID": detect_id,
+                "Class_Name": "worker",
+                "Coordinates": b.xywh[0].tolist(),
+                "Confidence": b.conf.item(),
+                "Encoded_Image": base64.b64encode(cv2.imencode(".jpeg", frm[round(b.xyxy[0, 1].item()):round(b.xyxy[0, 3].item()), round(b.xyxy[0, 0].item()):round(b.xyxy[0, 2].item())])[1]).decode()
+            })
+            detect_id += 1
 
         progress_queue.put(cam_name)
 
