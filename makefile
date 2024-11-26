@@ -11,4 +11,4 @@ stitch.out: stitch.cpp
 	-l opencv_core -l opencv_cudawarping -l opencv_imgcodecs -l opencv_videoio
 
 clean:
-	rm *.out
+	rm -f *.out
