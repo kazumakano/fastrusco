@@ -31,9 +31,9 @@ void draw_bbox(cv::Mat img, cv::Rect2d bbox, cv::Scalar color, std::string label
 int main(int argc, char **argv) {
   argparse::ArgumentParser parser;
   parser.add_argument("-p", "--pj_file").required().help("specify projection matrix file").metavar("PATH_TO_PJ_FILE");
-  parser.add_argument("-r", "--result_file").required().help("specify result file").metavar("PATH_TO_RESULT_FILE");
-  parser.add_argument("-s", "--src_file").required().help("specify source video file").metavar("PATH_TO_SRC_FILE");
-  parser.add_argument("-t", "--tgt_file").required().help("specify target video file").metavar("PATH_TO_TGT_FILE");
+  parser.add_argument("-t", "--track_file").required().help("specify track file").metavar("PATH_TO_TRACK_FILE");    // json format for multicam_tracking
+  parser.add_argument("-sv", "--src_vid_file").required().help("specify source video file").metavar("PATH_TO_SRC_VID_FILE");
+  parser.add_argument("-tv", "--tgt_vid_file").required().help("specify target video file").metavar("PATH_TO_TGT_VID_FILE");
   parser.parse_args(argc, argv);
 
   // load coordinate offset
