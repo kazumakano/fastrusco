@@ -57,13 +57,13 @@ int main(int argc, char **argv) {
   const auto offset = compute_offset(pjs);
 
   // load result
-  std::ifstream result_file(parser.get("--result_file"));
-  if (!result_file.is_open()) {
-    std::cout << "failed to open " << parser.get("--result_file") << std::endl;
+  std::ifstream track_file(parser.get("--track_file"));
+  if (!track_file.is_open()) {
+    std::cout << "failed to open " << parser.get("--track_file") << std::endl;
     exit(EXIT_FAILURE);
   }
-  const auto result_dict = nlohmann::json::parse(result_file);
-  result_file.close();
+  const auto track_dict = nlohmann::json::parse(track_file);
+  track_file.close();
 
   // draw bboxes
   cv::VideoCapture cap(parser.get("--src_file"));
@@ -75,9 +75,9 @@ int main(int argc, char **argv) {
     cap >> frm;
     if (frm.empty()) break;
 
-    while (result_idx < result_dict.size() && result_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
-    if (result_idx < result_dict.size() && result_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
-      for (const auto t : result_dict[result_idx]["tracks"]) {
+    while (result_idx < track_dict.size() && track_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
+    if (result_idx < track_dict.size() && track_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
+      for (const auto t : track_dict[result_idx]["tracks"]) {
         if (colors.find(t["track_id"]) == colors.end()) {
           colors[t["track_id"]] = cv::Scalar(random() % 255, random() % 255, random() % 255);
         }
