@@ -113,7 +113,6 @@ def _show_progress_bars(frm_num: int, progress_queue: ray_queue.Queue) -> None:
 def detect(encode_img: bool, model_file: str, result_dir: str, ts_cache_file: str, vid_dir: str, gpu_ids: Optional[list[int]] = None) -> None:
     if gpu_ids is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(i) for i in gpu_ids])
-    ray.init()
 
     begin_in_sec = int((datetime.strptime(BEGIN, "%H:%M:%S") - datetime(1900, 1, 1)).total_seconds())
     end_in_sec = int((datetime.strptime(END, "%H:%M:%S") - datetime(1900, 1, 1)).total_seconds())
