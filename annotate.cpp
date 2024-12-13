@@ -66,8 +66,8 @@ int main(int argc, char **argv) {
   track_file.close();
 
   // draw bboxes
-  cv::VideoCapture cap(parser.get("--src_file"));
-  cv::VideoWriter rec(parser.get("--tgt_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+  cv::VideoCapture cap(parser.get("--src_vid_file"));
+  cv::VideoWriter rec(parser.get("--tgt_vid_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
   std::map<int, cv::Scalar> colors;
   auto result_idx = 0;
   while (true) {
