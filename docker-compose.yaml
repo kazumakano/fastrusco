@@ -1,22 +1,24 @@
 version: "3"
 services:
-  fastrusco-service:
+  main:
     build:
       context: ./
       args:
         GID: 5032
         UID: 5032
         USER_NAME: kazuma_nis
-    container_name: fastrusco-container
+    container_name: fastrusco
     deploy:
       resources:
         reservations:
           devices:
             - capabilities: [gpu]
               count: all
+    image: fastrusco
+    shm_size: 10.24gb
+    tty: True
     volumes:
       - type: bind
         source: ./
-        target: /workspace/
-    shm_size: 10.24gb
-    tty: True
+        target: /app/
+ 

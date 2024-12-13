@@ -6,3 +6,4 @@ RUN groupadd --gid $GID $USER_NAME
 RUN useradd --gid $GID --create-home --shell /bin/bash --uid $UID $USER_NAME
 
 USER $UID:$GID
+WORKDIR /app/
