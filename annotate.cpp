@@ -8,11 +8,11 @@
  * @param pjs Projection matrices.
  * @return Coordinate offset.
  */
-cv::Size2d compute_offset(std::vector<cv::Mat> pjs) {
+cv::Size2d compute_offset(std::vector<cv::Mat1d> pjs) {
   cv::Size2d offset(INFINITY, INFINITY);
   for (const auto p : pjs) {
     std::vector<cv::Point2d> tf_corners;
-    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2d(0, 0), cv::Point2d(1920, 0), cv::Point2d(0, 1080)}, tf_corners, p);
+    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2i(0, 0), cv::Point2i(1920, 0), cv::Point2i(0, 1080)}, tf_corners, p);
     offset.width = std::min({offset.width, tf_corners[0].x, tf_corners[2].x});
     offset.height = std::min({offset.height, tf_corners[0].y, tf_corners[1].y});
   }
@@ -20,7 +20,7 @@ cv::Size2d compute_offset(std::vector<cv::Mat> pjs) {
   return offset;
 }
 
-void draw_bbox(cv::Mat img, cv::Rect2d bbox, cv::Scalar color, std::string label) {
+void draw_bbox(cv::Mat3b img, cv::Rect2d bbox, cv::Scalar color, std::string label) {
   cv::rectangle(img, bbox, color, 6);
   const auto txt_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1.5, 4, NULL);
   cv::rectangle(img, cv::Rect2d(bbox.x, bbox.y - txt_size.height - 4, txt_size.width, txt_size.height + 4), color, -1);
@@ -35,9 +35,12 @@ int main(int argc, char **argv) {
   parser.add_argument("-tv", "--tgt_vid_file").required().help("specify target video file").metavar("PATH_TO_TGT_VID_FILE");
   parser.parse_args(argc, argv);
 
-  // load coordinate offset
-  std::vector<cv::Mat> pjs;
-  for (const auto [_, p] : read_json(parser.get("--pj_file")).items()) {
+  // read projection matrix file
+  const auto pj_dict = read_json(parser.get("--pj_file"));
+
+  // compute coordinate offset
+  std::vector<cv::Mat1d> pjs;
+  for (const auto [_, p] : pj_dict.items()) {
     pjs.push_back((cv::Mat_<double>(3, 3) <<
       p["projective_matrix"][0][0], p["projective_matrix"][0][1], p["projective_matrix"][0][2],
       p["projective_matrix"][1][0], p["projective_matrix"][1][1], p["projective_matrix"][1][2],
@@ -46,14 +49,8 @@ int main(int argc, char **argv) {
   }
   const auto offset = compute_offset(pjs);
 
-  // load result
-  std::ifstream track_file(parser.get("--track_file"));
-  if (!track_file.is_open()) {
-    std::cout << "failed to open " << parser.get("--track_file") << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  const auto track_dict = nlohmann::json::parse(track_file);
-  track_file.close();
+  // read track file
+  auto track_dict = read_json(parser.get("--track_file"));
 
   // draw bboxes
   cv::VideoCapture cap(parser.get("--src_vid_file"));
@@ -61,7 +58,7 @@ int main(int argc, char **argv) {
   std::map<int, cv::Scalar> colors;
   auto result_idx = 0;
   while (true) {
-    cv::Mat frm;
+    cv::Mat3b frm;
     cap >> frm;
     if (frm.empty()) break;
 

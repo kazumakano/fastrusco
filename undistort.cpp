@@ -33,12 +33,12 @@ int main(int argc, char **argv) {
   parser.parse_args(argc, argv);
 
   glob_t cam_files;
-  glob(fs::path(parser.get("--cam_dir")).append("camera*.json").c_str(), 0, NULL, &cam_files);
+  glob((fs::path(parser.get("--cam_dir")) / "camera*.json").c_str(), 0, NULL, &cam_files);
   for (auto i = 0; i < cam_files.gl_pathc; i++) {
     const auto cam_name = fs::path(cam_files.gl_pathv[i]).filename().stem().string().substr(6);
 
     glob_t src_files;
-    glob(fs::path(parser.get("--src_dir")).append("camera" + cam_name).append("video_??-??-??_*.mp4").c_str(), 0, NULL, &src_files);
+    glob((fs::path(parser.get("--src_dir")) / ("camera" + cam_name) / "video_??-??-??_*.mp4").c_str(), 0, NULL, &src_files);
     if (src_files.gl_pathc == 0) continue;
 
     std::cout << "undistorting for camera " << cam_name << std::endl;
@@ -49,16 +49,16 @@ int main(int argc, char **argv) {
     param_vec << param_dict["intrinsics"][0]["intrinsics"]["fx"], param_dict["intrinsics"][0]["intrinsics"]["fy"], param_dict["intrinsics"][0]["intrinsics"]["cx"], param_dict["intrinsics"][0]["intrinsics"]["cy"], param_dict["intrinsics"][0]["intrinsics"]["xi"], param_dict["intrinsics"][0]["intrinsics"]["alpha"];
     const auto map = compute_map(DSCam(param_vec), param_dict.find("f") == param_dict.end() ? 0.5 : (double) param_dict["f"], cv::Size2i(param_dict["resolution"][0][0], param_dict["resolution"][0][1]));
 
-    // undistort
     const auto tgt_dir = fs::path(parser.get("--tgt_dir")) / ("camera" + cam_name);
     fs::create_directories(tgt_dir);
 
+    // undistort
     #pragma omp parallel for
     for (auto j = 0; j < src_files.gl_pathc; j++) {
       cv::VideoCapture cap(src_files.gl_pathv[j]);
       cv::VideoWriter rec(tgt_dir / fs::path(src_files.gl_pathv[j]).filename(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
       while (true) {
-        cv::Mat frm, mapped_frm;
+        cv::Mat3b frm, mapped_frm;
         cap >> frm;
         if (frm.empty()) break;
         cv::remap(frm, mapped_frm, map, cv::Mat(), cv::INTER_LINEAR);
