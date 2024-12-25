@@ -2,8 +2,7 @@
 #include <omp.h>
 #include <opencv2/cudawarping.hpp>
 #include <argparse/argparse.hpp>
-#include <fstream>
-#include <nlohmann/json.hpp>
+#include "utility.hpp"
 #include <glob.h>
 
 /**
@@ -69,20 +68,11 @@ int main(int argc, char **argv) {
   parser.add_argument("-t", "--tgt_file").required().help("specify target video file").metavar("PATH_TO_TGT_FILE");
   parser.parse_args(argc, argv);
 
-  // read projection matrix file
-  std::ifstream pj_file(parser.get("--pj_file"));
-  if (!pj_file.is_open()) {
-    std::cout << "failed to open " << parser.get("--pj_file") << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  const auto pj_dict = nlohmann::json::parse(pj_file);
-  pj_file.close();
-
   // load constants
   std::vector<cv::VideoCapture> caps;
   std::vector<cuda::GpuMat> masks;
   std::vector<cv::Mat> pjs;
-  for (const auto [n, p] : pj_dict.items()) {
+  for (const auto [n, p] : read_json(parser.get("--pj_file")).items()) {
     glob_t mask_files, vid_files;
     glob(fs::path(parser.get("--mask_dir")).append(MASK_REG_EXP(n)).c_str(), 0, NULL, &mask_files);
     glob(fs::path(parser.get("--src_dir")).append(VID_REG_EXP(n)).c_str(), 0, NULL, &vid_files);

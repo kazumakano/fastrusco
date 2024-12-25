@@ -1,7 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <argparse/argparse.hpp>
-#include <fstream>
-#include <nlohmann/json.hpp>
+#include "utility.hpp"
 
 
 /**
@@ -37,23 +36,14 @@ int main(int argc, char **argv) {
   parser.parse_args(argc, argv);
 
   // load coordinate offset
-  std::ifstream pj_file(parser.get("--pj_file"));
-  if (!pj_file.is_open()) {
-    std::cout << "failed to open " << parser.get("--pj_file") << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  const auto pj_dict = nlohmann::json::parse(pj_file);
-  pj_file.close();
-
   std::vector<cv::Mat> pjs;
-  for (const auto [_, p] : pj_dict.items()) {
+  for (const auto [_, p] : read_json(parser.get("--pj_file")).items()) {
     pjs.push_back((cv::Mat_<double>(3, 3) <<
       p["projective_matrix"][0][0], p["projective_matrix"][0][1], p["projective_matrix"][0][2],
       p["projective_matrix"][1][0], p["projective_matrix"][1][1], p["projective_matrix"][1][2],
       p["projective_matrix"][2][0], p["projective_matrix"][2][1], p["projective_matrix"][2][2]
     ));
   }
-
   const auto offset = compute_offset(pjs);
 
   // load result
