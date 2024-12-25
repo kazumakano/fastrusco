@@ -50,13 +50,13 @@ int main(int argc, char **argv) {
     const auto map = compute_map(DSCam(param_vec), param_dict.find("f") == param_dict.end() ? 0.5 : (double) param_dict["f"], cv::Size2i(param_dict["resolution"][0][0], param_dict["resolution"][0][1]));
 
     // undistort
-    auto tgt_dir = fs::path(parser.get("--tgt_dir")).append("camera" + cam_name);
+    const auto tgt_dir = fs::path(parser.get("--tgt_dir")) / ("camera" + cam_name);
     fs::create_directories(tgt_dir);
 
     #pragma omp parallel for
     for (auto j = 0; j < src_files.gl_pathc; j++) {
       cv::VideoCapture cap(src_files.gl_pathv[j]);
-      cv::VideoWriter rec(tgt_dir.append(fs::path(src_files.gl_pathv[j]).filename().string()), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+      cv::VideoWriter rec(tgt_dir / fs::path(src_files.gl_pathv[j]).filename(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
       while (true) {
         cv::Mat frm, mapped_frm;
         cap >> frm;
