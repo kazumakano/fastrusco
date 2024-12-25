@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
         cv::Mat3b frm, mapped_frm;
         cap >> frm;
         if (frm.empty()) break;
+
         cv::remap(frm, mapped_frm, map, cv::Mat(), cv::INTER_LINEAR);
         rec << mapped_frm;
       }
