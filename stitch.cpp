@@ -1,8 +1,8 @@
 #include <opencv2/opencv.hpp>
+#include "utility.hpp"
 #include <omp.h>
 #include <opencv2/cudawarping.hpp>
 #include <argparse/argparse.hpp>
-#include "utility.hpp"
 #include <glob.h>
 
 /**
