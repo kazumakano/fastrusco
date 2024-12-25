@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   const auto offset = compute_offset(pjs);
 
   // read track file
-  auto track_dict = read_json(parser.get("--track_file"));
+  const auto track_dict = read_json(parser.get("--track_file"));
 
   // draw bboxes
   cv::VideoCapture cap(parser.get("--src_vid_file"));

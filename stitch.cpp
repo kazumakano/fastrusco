@@ -25,11 +25,11 @@ namespace fs = std::filesystem;
  * @param pjs Projection matrices. This value will be updated.
  * @return Stitched image size.
  */
-cv::Size2i crop(std::vector<cv::Mat> pjs) {
+cv::Size2i crop(std::vector<cv::Mat1d> pjs) {
   std::vector stitched_ltrb = {cv::Point2d(INFINITY, INFINITY), cv::Point2d(-INFINITY, -INFINITY)};
   for (const auto p : pjs) {
     std::vector<cv::Point2d> tf_corners;
-    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2d(0, 0), cv::Point2d(1920, 0), cv::Point2d(0, 1080), cv::Point2d(1920, 1080)}, tf_corners, p);
+    cv::perspectiveTransform((std::vector<cv::Point2d>) {cv::Point2i(0, 0), cv::Point2i(1920, 0), cv::Point2i(0, 1080), cv::Point2i(1920, 1080)}, tf_corners, p);
     stitched_ltrb[0].x = std::min({stitched_ltrb[0].x, tf_corners[0].x, tf_corners[2].x});
     stitched_ltrb[0].y = std::min({stitched_ltrb[0].y, tf_corners[0].y, tf_corners[1].y});
     stitched_ltrb[1].x = std::max({stitched_ltrb[1].x, tf_corners[1].x, tf_corners[3].x});
@@ -46,7 +46,7 @@ cv::Size2i crop(std::vector<cv::Mat> pjs) {
   return cv::Size2i(stitched_ltrb[1].x - stitched_ltrb[0].x, stitched_ltrb[1].y - stitched_ltrb[0].y);
 }
 
-cuda::GpuMat stitch(const std::vector<cuda::GpuMat> imgs, const std::vector<cv::Mat> pjs, const std::vector<cuda::GpuMat> warped_masks) {
+cuda::GpuMat stitch(const std::vector<cuda::GpuMat> imgs, const std::vector<cv::Mat1d> pjs, const std::vector<cuda::GpuMat> warped_masks) {
   cuda::GpuMat stitched_img(warped_masks[0].size(), CV_8UC3, cv::Scalar(0));
 
   #pragma omp parallel for
@@ -68,14 +68,17 @@ int main(int argc, char **argv) {
   parser.add_argument("-t", "--tgt_file").required().help("specify target video file").metavar("PATH_TO_TGT_FILE");
   parser.parse_args(argc, argv);
 
+  // read projection matrix file
+  const auto pj_dict = read_json(parser.get("--pj_file"));
+
   // load constants
   std::vector<cv::VideoCapture> caps;
   std::vector<cuda::GpuMat> masks;
-  std::vector<cv::Mat> pjs;
-  for (const auto [n, p] : read_json(parser.get("--pj_file")).items()) {
+  std::vector<cv::Mat1d> pjs;
+  for (const auto [n, p] : pj_dict.items()) {
     glob_t mask_files, vid_files;
-    glob(fs::path(parser.get("--mask_dir")).append(MASK_REG_EXP(n)).c_str(), 0, NULL, &mask_files);
-    glob(fs::path(parser.get("--src_dir")).append(VID_REG_EXP(n)).c_str(), 0, NULL, &vid_files);
+    glob((fs::path(parser.get("--mask_dir")) / (MASK_REG_EXP(n))).c_str(), 0, NULL, &mask_files);
+    glob((fs::path(parser.get("--src_dir")) / (VID_REG_EXP(n))).c_str(), 0, NULL, &vid_files);
     if (mask_files.gl_pathc == vid_files.gl_pathc == 1) {
       caps.emplace_back(vid_files.gl_pathv[0]);
       cuda::GpuMat mask;
@@ -113,7 +116,7 @@ int main(int argc, char **argv) {
     std::vector<cuda::GpuMat> frms;
     auto is_eof = false;
     for (auto c : caps) {
-      cv::Mat frm;
+      cv::Mat3b frm;
       c >> frm;
       if (frm.empty()) {
         is_eof = true;
@@ -126,7 +129,7 @@ int main(int argc, char **argv) {
     if (is_eof) break;
 
     const auto stitched_frm_on_gpu = stitch(frms, pjs, warped_masks);
-    cv::Mat stitched_frm;
+    cv::Mat3b stitched_frm;
     stitched_frm_on_gpu.download(stitched_frm);
 
     rec << stitched_frm;
