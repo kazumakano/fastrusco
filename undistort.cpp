@@ -4,7 +4,9 @@
 #include <argparse/argparse.hpp>
 #include <glob.h>
 #include <omp.h>
+#include <opencv2/cudawarping.hpp>
 
+namespace cuda = cv::cuda;
 using DSCam = DoubleSphereCamera;
 namespace fs = std::filesystem;
 
@@ -47,7 +49,11 @@ int main(int argc, char **argv) {
     const auto param_dict = read_json(cam_files.gl_pathv[i])["value0"];
     DSCam::VecN param_vec;
     param_vec << param_dict["intrinsics"][0]["intrinsics"]["fx"], param_dict["intrinsics"][0]["intrinsics"]["fy"], param_dict["intrinsics"][0]["intrinsics"]["cx"], param_dict["intrinsics"][0]["intrinsics"]["cy"], param_dict["intrinsics"][0]["intrinsics"]["xi"], param_dict["intrinsics"][0]["intrinsics"]["alpha"];
-    const auto map = compute_map(DSCam(param_vec), param_dict.find("f") == param_dict.end() ? 0.5 : (double) param_dict["f"], cv::Size2i(param_dict["resolution"][0][0], param_dict["resolution"][0][1]));
+    std::vector<cv::Mat1f> map;
+    cv::split(compute_map(DSCam(param_vec), param_dict.find("f") == param_dict.end() ? 0.5 : (double) param_dict["f"], cv::Size2i(param_dict["resolution"][0][0], param_dict["resolution"][0][1])), map); 
+    cuda::GpuMat x_map_on_gpu, y_map_on_gpu;
+    x_map_on_gpu.upload(map[0]);
+    y_map_on_gpu.upload(map[1]);
 
     const auto tgt_dir = fs::path(parser.get("--tgt_dir")) / ("camera" + cam_name);
     fs::create_directories(tgt_dir);
@@ -62,7 +68,11 @@ int main(int argc, char **argv) {
         cap >> frm;
         if (frm.empty()) break;
 
-        cv::remap(frm, mapped_frm, map, cv::Mat(), cv::INTER_LINEAR);
+        cuda::GpuMat frm_on_gpu, mapped_frm_on_gpu;
+        frm_on_gpu.upload(frm);
+        cuda::remap(frm_on_gpu, mapped_frm_on_gpu, x_map_on_gpu, y_map_on_gpu, cv::INTER_LINEAR);
+        mapped_frm_on_gpu.download(mapped_frm);
+
         rec << mapped_frm;
       }
       cap.release();
