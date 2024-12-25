@@ -6,6 +6,8 @@
 #include <omp.h>
 #include <opencv2/cudawarping.hpp>
 
+#define MAX_TASK_NUM 4
+
 namespace cuda = cv::cuda;
 using DSCam = DoubleSphereCamera;
 namespace fs = std::filesystem;
@@ -14,7 +16,6 @@ cv::Mat2f compute_map(DSCam cam, double f_len, cv::Size2i img_size) {
   cv::Mat2f map(img_size, CV_32FC2);
   const auto z = f_len * MIN(img_size.height, img_size.width);
 
-  #pragma omp parallel for
   for (auto y = 0; y < img_size.height; y++) {
     for (auto x = 0; x < img_size.width; x++) {
       DSCam::Vec2 pj_pt;
@@ -27,6 +28,10 @@ cv::Mat2f compute_map(DSCam cam, double f_len, cv::Size2i img_size) {
 }
 
 int main(int argc, char **argv) {
+  #ifdef MAX_TASK_NUM
+  omp_set_num_threads(MAX_TASK_NUM);
+  #endif
+
   // parse arguments
   argparse::ArgumentParser parser;
   parser.add_argument("-c", "--cam_dir").required().help("specify camera calibration directory").metavar("PATH_TO_CAM_DIR");

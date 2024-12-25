@@ -1,6 +1,5 @@
 #include <opencv2/opencv.hpp>
 #include "utility.hpp"
-#include <omp.h>
 #include <opencv2/cudawarping.hpp>
 #include <argparse/argparse.hpp>
 #include <glob.h>
@@ -49,7 +48,6 @@ cv::Size2i crop(std::vector<cv::Mat1d> pjs) {
 cuda::GpuMat stitch(const std::vector<cuda::GpuMat> imgs, const std::vector<cv::Mat1d> pjs, const std::vector<cuda::GpuMat> warped_masks) {
   cuda::GpuMat stitched_img(warped_masks[0].size(), CV_8UC3, cv::Scalar(0));
 
-  #pragma omp parallel for
   for (int i = 0; i < imgs.size(); i++) {
     cuda::GpuMat warped_img;
     cuda::warpPerspective(imgs[i], warped_img, pjs[i], warped_masks[i].size());
