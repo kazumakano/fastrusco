@@ -6,6 +6,9 @@
 #include <omp.h>
 #include <opencv2/cudawarping.hpp>
 
+/**
+ * @brief Maxinum number of parallel tasks. Dynamic if undefined.
+ */
 #define MAX_TASK_NUM 8
 
 namespace cuda = cv::cuda;
