@@ -6,13 +6,20 @@
 #include <omp.h>
 #include <opencv2/cudawarping.hpp>
 
-#define MAX_TASK_NUM 4
+#define MAX_TASK_NUM 8
 
 namespace cuda = cv::cuda;
 using DSCam = DoubleSphereCamera;
 namespace fs = std::filesystem;
 
-cv::Mat2f compute_map(DSCam cam, double f_len, cv::Size2i img_size) {
+/**
+ * @brief Compute projection map based on double sphere camera model.
+ * @param cam Camera model.
+ * @param f_len Focal length.
+ * @param img_size Image size.
+ * @return Map of every pixel.
+ */
+cv::Mat2f compute_map(const DSCam cam, const double f_len, const cv::Size2i img_size) {
   cv::Mat2f map(img_size, CV_32FC2);
   const auto z = f_len * MIN(img_size.height, img_size.width);
 

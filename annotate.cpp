@@ -8,7 +8,7 @@
  * @param pjs Projection matrices.
  * @return Coordinate offset.
  */
-cv::Size2d compute_offset(std::vector<cv::Mat1d> pjs) {
+cv::Size2d compute_offset(const std::vector<cv::Mat1d> pjs) {
   cv::Size2d offset(INFINITY, INFINITY);
   for (const auto p : pjs) {
     std::vector<cv::Point2d> tf_corners;
@@ -20,7 +20,7 @@ cv::Size2d compute_offset(std::vector<cv::Mat1d> pjs) {
   return offset;
 }
 
-void draw_bbox(cv::Mat3b img, cv::Rect2d bbox, cv::Scalar color, std::string label) {
+void draw_bbox(cv::Mat3b img, const cv::Rect2d bbox, const cv::Scalar color, const std::string label) {
   cv::rectangle(img, bbox, color, 6);
   const auto txt_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 1.5, 4, NULL);
   cv::rectangle(img, cv::Rect2d(bbox.x, bbox.y - txt_size.height - 4, txt_size.width, txt_size.height + 4), color, -1);
