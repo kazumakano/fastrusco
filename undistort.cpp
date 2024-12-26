@@ -7,7 +7,7 @@
 #include <opencv2/cudawarping.hpp>
 
 /**
- * @brief Maxinum number of parallel tasks. Dynamic if undefined.
+ * @brief Maximum number of parallel tasks. Dynamic if undefined.
  */
 #define MAX_TASK_NUM 8
 
