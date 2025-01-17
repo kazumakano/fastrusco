@@ -65,10 +65,11 @@ int main(int argc, char **argv) {
     while (result_idx < track_dict.size() && track_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
     if (result_idx < track_dict.size() && track_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
       for (const auto t : track_dict[result_idx]["tracks"]) {
-        if (colors.find(t["track_id"].dump()) == colors.end()) {
-          colors[t["track_id"].dump()] = cv::Scalar(random() % 255, random() % 255, random() % 255);
+        const auto track_id_str = to_str(t["track_id"]);
+        if (colors.find(track_id_str) == colors.end()) {
+          colors[track_id_str] = cv::Scalar(random() % 255, random() % 255, random() % 255);
         }
-        draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), colors[t["track_id"].dump()], t["track_id"].dump());
+        draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), colors[track_id_str], track_id_str);
       }
     }
 
