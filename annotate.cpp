@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
   // draw bboxes
   cv::VideoCapture cap(parser.get("--src_vid_file"));
   cv::VideoWriter rec(parser.get("--tgt_vid_file"), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), cap.get(cv::CAP_PROP_FPS), cv::Size2i(cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
-  std::map<int, cv::Scalar> colors;
+  std::map<std::string, cv::Scalar> colors;
   auto result_idx = 0;
   while (true) {
     cv::Mat3b frm;
@@ -65,10 +65,10 @@ int main(int argc, char **argv) {
     while (result_idx < track_dict.size() && track_dict[result_idx]["frame_id"] < cap.get(cv::CAP_PROP_POS_FRAMES) - 1) result_idx++;
     if (result_idx < track_dict.size() && track_dict[result_idx]["frame_id"] == cap.get(cv::CAP_PROP_POS_FRAMES) - 1) {
       for (const auto t : track_dict[result_idx]["tracks"]) {
-        if (colors.find(t["track_id"]) == colors.end()) {
-          colors[t["track_id"]] = cv::Scalar(random() % 255, random() % 255, random() % 255);
+        if (colors.find(t["track_id"].dump()) == colors.end()) {
+          colors[t["track_id"].dump()] = cv::Scalar(random() % 255, random() % 255, random() % 255);
         }
-        draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), colors[t["track_id"]], std::to_string((int) t["track_id"]));
+        draw_bbox(frm, cv::Rect2d((double) t["bbox"][0] - offset.width, (double) t["bbox"][1] - offset.height, t["bbox"][2], t["bbox"][3]), colors[t["track_id"].dump()], t["track_id"].dump());
       }
     }
 
