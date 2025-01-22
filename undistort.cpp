@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   argparse::ArgumentParser parser;
   parser.add_argument("-c", "--cam_dir").required().help("specify camera calibration directory").metavar("PATH_TO_CAM_DIR");
   parser.add_argument("-s", "--src_dir").required().help("specify source video directory").metavar("PATH_TO_SRC_DIR");
-  parser.add_argument("-t", "--tgt_dir").required().help("specify target video file").metavar("PATH_TO_TGT_DIR");
+  parser.add_argument("-t", "--tgt_dir").required().help("specify target video directory").metavar("PATH_TO_TGT_DIR");
   parser.parse_args(argc, argv);
 
   glob_t cam_files;
