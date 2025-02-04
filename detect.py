@@ -12,6 +12,7 @@ from os import makedirs
 from typing import Optional
 import cv2
 import ray
+import yaml
 from ray.util import queue as ray_queue
 from torch import cuda
 from tqdm import tqdm
@@ -141,6 +142,10 @@ def detect(encode_img: bool, model_file: str, result_dir: str, ts_cache_file: st
     ray.get(pid_queue)
     progress_queue.put("")
     progress_thread.join()
+
+    model = YOLO(model=model_file)
+    with open(path.join(result_dir, "model.yaml"), mode="w") as f:
+        yaml.safe_dump({"datetime": datetime.fromisoformat(model.ckpt["date"]).strftime("%Y/%m/%d %H:%M:%S"), "path": model.ckpt_path, "size": model.info()[1]}, f)
 
 if __name__ == "__main__":
     import argparse

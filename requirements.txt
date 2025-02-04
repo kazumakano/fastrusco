@@ -1,5 +1,6 @@
 numpy
 opencv-python
+PyYAML
 ray[air]
 ray[default]
 torch
