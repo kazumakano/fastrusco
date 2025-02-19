@@ -3,7 +3,7 @@
 	url = https://github.com/p-ranav/argparse.git
 [submodule "dscam"]
 	path = dscam
-	url = git@github.com:wpfhtl/double_sphere.git
+	url = https://github.com/wpfhtl/double_sphere.git
 [submodule "json"]
 	path = json
 	url = https://github.com/nlohmann/json.git
