@@ -34,7 +34,7 @@ def _crop(pjs: dict[str, np.ndarray]) -> tuple[dict[str, np.ndarray], tuple[int,
     -------
     pjs : dict[str, ndarray[float64]]
         Dictionary of camera names and cropped projection matrices.
-    size : tuple[int, int]
+    img_size : tuple[int, int]
         Stitched image size.
     """
 
