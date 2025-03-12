@@ -99,7 +99,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--mask_dir", required=True, help="specify mask image directory", metavar="PATH_TO_MASK_DIR")
     parser.add_argument("-p", "--pj_file", required=True, help="specify projection matrix file", metavar="PATH_TO_PJ_FILE")
-    parser.add_argument("-s", "--src_dir", required=True, help="specify source video directory", metavar="PATH_TO_SRC_DIR")
+    parser.add_argument("-s", "--src_dir", required=True, help="specify source undistorted video directory", metavar="PATH_TO_SRC_DIR")
     parser.add_argument("-t", "--tgt_file", required=True, help="specify target video file", metavar="PATH_TO_TGT_FILE")
     parser.add_argument("-tc", "--ts_cache_file", required=True, help="specify timestamp cache file", metavar="PATH_TO_TS_CACHE_FILE")
     args = parser.parse_args()

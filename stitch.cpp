@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
   argparse::ArgumentParser parser;
   parser.add_argument("-m", "--mask_dir").required().help("specify mask image directory").metavar("PATH_TO_MASK_DIR");
   parser.add_argument("-p", "--pj_file").required().help("specify projection matrix file").metavar("PATH_TO_PJ_FILE");
-  parser.add_argument("-s", "--src_dir").required().help("specify source video directory").metavar("PATH_TO_SRC_DIR");
+  parser.add_argument("-s", "--src_dir").required().help("specify source undistorted video directory").metavar("PATH_TO_SRC_DIR");
   parser.add_argument("-t", "--tgt_file").required().help("specify target video file").metavar("PATH_TO_TGT_FILE");
   parser.parse_args(argc, argv);
 
