@@ -15,11 +15,19 @@ END : str
     End time to stitch video.
 MASK_REG_EXP : (n: str) -> str
     Regular expression of mask image file name.
+SRC_FPS : float
+    Frame rate [fps] to read source videos.
+    Set lower to reduce file size.
+TGT_FPS : float
+    Frame rate [fps] to write target video.
+    Playback speed will be 'TGT_FPS / SRC_FPS'.
 """
 
 BEGIN = "00:00:00"
 END = "23:59:59"
 MASK_REG_EXP = lambda n: n + ".png"
+SRC_FPS = 5
+TGT_FPS = 5
 
 def _crop(pjs: dict[str, np.ndarray]) -> tuple[dict[str, np.ndarray], tuple[int, int]]:
     """
@@ -67,16 +75,17 @@ def stitch(mask_dir: str, pj_file: str, src_dir: str, tgt_file: str, ts_cache_fi
     # prepare constants
     cam_names = pj_dict.keys() & ts_cache[0].keys()
     pjs, frm_size = _crop({n: np.array(pj_dict[n]["projective_matrix"], dtype=np.float64) for n in cam_names})
-    makedirs(path.dirname(tgt_file), exist_ok=True)
-    rec = cv2.VideoWriter(tgt_file, cv2.VideoWriter_fourcc(*"mp4v"), 5, frm_size)
-    warped_masks = {n: cv2.warpPerspective(cv2.imread(path.join(mask_dir, MASK_REG_EXP(n)), flags=cv2.IMREAD_GRAYSCALE), pjs[n], frm_size) for n in cam_names}
+    if (tgt_dir := path.dirname(tgt_file)) != "":
+        makedirs(tgt_dir, exist_ok=True)
+    rec = cv2.VideoWriter(tgt_file, cv2.VideoWriter_fourcc(*"mp4v"), TGT_FPS, frm_size)
+    warped_masks = {n: cv2.warpPerspective(cv2.imread(path.join(mask_dir, MASK_REG_EXP(n)), flags=cv2.IMREAD_GRAYSCALE), pjs[n], frm_size)[:, :, np.newaxis].repeat(3, axis=2).astype(np.float32) / 255 for n in cam_names}    # repeat masks across color channels to avoid broadcasting on every frame
 
     # stitch
     status: dict[str, dict[str, int | np.ndarray | cv2.VideoCapture]] = {}
-    for cur_in_sec in tqdm(np.arange(begin_in_sec, end_in_sec, step=0.2), desc="stitching"):
-        stitched_frm = np.zeros((frm_size[1], frm_size[0], 3), dtype=np.uint8)
+    for cur_in_sec in tqdm(np.arange(begin_in_sec, end_in_sec, step=1 / SRC_FPS), desc="stitching"):
+        stitched_frm = np.zeros((frm_size[1], frm_size[0], 3), dtype=np.float32)
         for n in cam_names:
-            vid_idx, frm_idx = ts_cache[0][n][int(5 * (cur_in_sec - ts_cache[1][n]))]
+            vid_idx, frm_idx = ts_cache[0][n][round(5 * (cur_in_sec - ts_cache[1][n]))]
 
             if n in status.keys() and status[n]["vid_idx"] != vid_idx:
                 status[n]["cap"].release()
@@ -86,8 +95,8 @@ def stitch(mask_dir: str, pj_file: str, src_dir: str, tgt_file: str, ts_cache_fi
             while status[n]["cap"].get(cv2.CAP_PROP_POS_FRAMES) <= frm_idx:
                 status[n]["frm"] = status[n]["cap"].read()[1]
 
-            cv2.copyTo(cv2.warpPerspective(status[n]["frm"], pjs[n], frm_size), warped_masks[n], dst=stitched_frm)
-        rec.write(stitched_frm)
+            stitched_frm += warped_masks[n] * cv2.warpPerspective(status[n]["frm"], pjs[n], frm_size)    # 'cv2.copyTo()' does not support alpha blending
+        rec.write(stitched_frm.clip(min=0, max=255).round().astype(np.uint8))
 
     for s in status.values():
         s["cap"].release()
